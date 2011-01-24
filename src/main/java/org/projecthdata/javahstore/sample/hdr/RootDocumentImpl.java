@@ -16,9 +16,11 @@
 package org.projecthdata.javahstore.sample.hdr;
 
 import java.io.ByteArrayInputStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -36,7 +38,7 @@ public class RootDocumentImpl implements RootDocument {
 
   private String id;
   Map<String, Extension> extensions;
-  Section rootSection;
+  List<Section> rootSections;
   Date created;
   Date updated;
 
@@ -65,8 +67,10 @@ public class RootDocumentImpl implements RootDocument {
     this.extensions = new HashMap<String, Extension>();
     Extension allergiesExtension = new AllergiesExtension();
     this.extensions.put(allergiesExtension.getId(), allergiesExtension);
-    this.rootSection = new RootSection();
-    Section allergiesSection = rootSection.createChildSection(allergiesExtension, "allergies", "Allergy Section");
+    this.rootSections = new ArrayList<Section>();
+    String sectionPath = "allergies";
+    createChildSection(allergiesExtension, sectionPath, "Allergy Section");
+    Section allergiesSection = getChildSection(sectionPath);
     try {
       SectionDocument secDoc = allergiesSection.createDocument("text/plain", new ByteArrayInputStream("Hello World !".getBytes()));
       DocumentMetadata docMeta = new DocumentMetadata(TEST_METADATA);
@@ -97,16 +101,32 @@ public class RootDocumentImpl implements RootDocument {
   }
 
   @Override
-  public Section getRootSection() {
-    return rootSection;
-  }
-
-  @Override
   public Extension getExtension(String id) {
     Extension e = extensions.get(id);
     if (e==null)
       throw new IllegalArgumentException("Unknown extension ID: "+id);
     return e;
+  }
+
+  @Override
+  public Collection<Section> getRootSections() {
+    return rootSections;
+  }
+
+  @Override
+  public final void createChildSection(Extension e, String path, String name) {
+    this.rootSections.add(new GenericChildSection(e, path, name));
+  }
+
+  @Override
+  public final Section getChildSection(String segment) {
+    Section sec = null;
+    for (Section section : rootSections) {
+      if (section.getPath().equals(segment)) {
+        sec = section;
+      }
+    }
+    return sec;
   }
 
 }
